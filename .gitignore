@@ -1,0 +1,42 @@
+# Секреты и переменные окружения
+.env
+.env.local
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Логи
+*.log
+logs/
+
+# Docker
+.docker/
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# SSL сертификаты и ключи
+*.pem
+*.key
+*.crt
+certbot/
+
+# Временные файлы
+*.tmp
+*.bak
+tmp/

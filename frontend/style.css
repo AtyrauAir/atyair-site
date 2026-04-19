@@ -1,0 +1,312 @@
+/* =============================================================================
+   atyair — стили
+   Минималистичный светлый интерфейс
+   ============================================================================= */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    color: #1f2937;
+    background: #f8fafc;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---------- Шапка ---------- */
+
+.header {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 14px 20px;
+    flex-shrink: 0;
+}
+
+.header__inner {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.header__logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 20px;
+}
+
+.header__dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #1e88e5;
+}
+
+.header__name {
+    color: #111827;
+    letter-spacing: -0.5px;
+}
+
+.header__tagline {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* ---------- Main (карта + сайдбар) ---------- */
+
+.main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.map {
+    width: 100%;
+    height: 100%;
+    background: #e5e7eb;
+}
+
+.sidebar {
+    background: #ffffff;
+    border-left: 1px solid #e5e7eb;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar__header {
+    padding: 20px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.sidebar__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 6px;
+}
+
+.sidebar__subtitle {
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.sidebar__content {
+    padding: 20px;
+    flex: 1;
+}
+
+.sidebar__hint {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.6;
+}
+
+.sidebar__hint p {
+    margin-bottom: 10px;
+}
+
+/* ---------- Детали станции ---------- */
+
+.station-details__name {
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+}
+
+.station-details__time {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 16px;
+}
+
+.aqi-box {
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    color: #ffffff;
+    text-align: center;
+}
+
+.aqi-box__value {
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.aqi-box__label {
+    font-size: 14px;
+    margin-top: 4px;
+    opacity: 0.95;
+}
+
+.pollutant-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.pollutant {
+    background: #f3f4f6;
+    padding: 10px 12px;
+    border-radius: 6px;
+}
+
+.pollutant__name {
+    font-size: 11px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pollutant__value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin-top: 2px;
+}
+
+.pollutant__unit {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+/* ---------- Легенда ---------- */
+
+.legend {
+    padding: 20px;
+    border-top: 1px solid #e5e7eb;
+    background: #f9fafb;
+}
+
+.legend__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+}
+
+.legend__items {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.legend__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.legend__swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* ---------- Футер ---------- */
+
+.footer {
+    background: #111827;
+    color: #9ca3af;
+    padding: 12px 20px;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.footer__inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.footer a {
+    color: #60a5fa;
+    text-decoration: none;
+}
+
+.footer a:hover {
+    text-decoration: underline;
+}
+
+.footer__update {
+    color: #6b7280;
+}
+
+/* ---------- Маркеры Leaflet (кастомные цвета) ---------- */
+
+.aqi-marker {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000000;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.aqi-marker:hover {
+    transform: scale(1.1);
+}
+
+.aqi-marker--no-data {
+    background: #9ca3af;
+    color: #ffffff;
+}
+
+/* ---------- Адаптив под мобильные ---------- */
+
+@media (max-width: 768px) {
+    .main {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60vh 40vh;
+    }
+
+    .sidebar {
+        border-left: none;
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .header__tagline {
+        display: none;
+    }
+
+    .footer__inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
