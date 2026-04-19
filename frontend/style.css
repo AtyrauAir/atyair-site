@@ -310,3 +310,203 @@ body {
         gap: 4px;
     }
 }
+
+
+/* ---------- Новый футер с колонками ---------- */
+
+.footer__columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 30px;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px 20px 15px;
+}
+
+.footer__col-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.footer__col-text {
+    font-size: 12px;
+    color: #9ca3af;
+    line-height: 1.7;
+}
+
+.footer__col-text a {
+    color: #60a5fa;
+    text-decoration: none;
+}
+
+.footer__col-text a:hover {
+    text-decoration: underline;
+}
+
+.footer__bottom {
+    border-top: 1px solid #374151;
+    padding: 10px 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: #6b7280;
+}
+
+@media (max-width: 768px) {
+    .footer__columns {
+        grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 15px;
+    }
+    .footer__bottom {
+        flex-direction: column;
+        gap: 4px;
+        text-align: center;
+    }
+}
+
+
+/* ---------- Улучшенные карточки загрязнителей ---------- */
+
+.pollutant {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    padding: 10px 12px;
+    border-radius: 6px;
+    cursor: help;
+    position: relative;
+    transition: all 0.15s ease;
+}
+
+.pollutant:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.pollutant__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pollutant__info {
+    color: #9ca3af;
+    font-size: 11px;
+    cursor: help;
+}
+
+.pollutant__tech {
+    font-size: 10px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.pollutant__value {
+    font-size: 17px;
+    font-weight: 700;
+    color: #111827;
+    line-height: 1.2;
+}
+
+.pollutant__unit {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: 400;
+}
+
+.pollutant__level {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+/* Tooltip при наведении */
+.pollutant::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background: #1f2937;
+    color: #f9fafb;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    width: 260px;
+    max-width: 90vw;
+    white-space: normal;
+    text-align: left;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+
+.pollutant::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(0);
+    border: 6px solid transparent;
+    border-top-color: #1f2937;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+    z-index: 1000;
+}
+
+.pollutant:hover::after,
+.pollutant:hover::before {
+    opacity: 1;
+}
+
+.pollutant:hover::after {
+    transform: translateX(-50%) translateY(-14px);
+}
+
+
+/* ---------- Статусы свежести данных ---------- */
+
+.footer__update {
+    font-weight: 600;
+}
+
+.status--ok {
+    color: #9ca3af;
+}
+
+.status--warn {
+    color: #f59e0b;
+}
+
+.status--stale {
+    color: #ef4444;
+}
+
+.station-details__time.status--ok {
+    color: #9ca3af;
+}
+
+.station-details__time.status--warn,
+.station-details__time.status--stale {
+    font-weight: 600;
+}

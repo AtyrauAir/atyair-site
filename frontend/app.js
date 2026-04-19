@@ -5,14 +5,11 @@
 
 'use strict';
 
-// --------- Константы ---------
-
 const API_BASE = '/api';
-const MAP_CENTER = [47.1067, 51.9233];  // Атырау, центр города
+const MAP_CENTER = [47.1067, 51.9233];
 const MAP_ZOOM = 12;
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000;  // 5 минут
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
-// Цвета AQI по категориям (EPA US)
 const AQI_COLORS = {
     good: '#00e400',
     moderate: '#ffff00',
@@ -31,8 +28,6 @@ const AQI_LABELS = {
     hazardous: 'Опасно',
 };
 
-// --------- Инициализация карты ---------
-
 const map = L.map('map', {
     center: MAP_CENTER,
     zoom: MAP_ZOOM,
@@ -45,23 +40,27 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap',
 }).addTo(map);
 
-// Хранилище маркеров: station_id -> L.Marker
 const markers = {};
-
-// --------- Утилиты ---------
+let stationsById = {};
+let selectedStationId = null;
 
 function formatTime(isoString) {
     if (!isoString) return '—';
     const d = new Date(isoString);
     const now = new Date();
-    const diffMin = Math.round((now - d) / 60000);
+    const diffMin = Math.max(0, Math.round((now - d) / 60000));
+
     if (diffMin < 1) return 'только что';
     if (diffMin < 60) return `${diffMin} мин назад`;
+
     const diffHr = Math.round(diffMin / 60);
     if (diffHr < 24) return `${diffHr} ч назад`;
+
     return d.toLocaleString('ru-RU', {
-        day: '2-digit', month: '2-digit',
-        hour: '2-digit', minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
     });
 }
 
@@ -78,32 +77,82 @@ function aqiLabel(category) {
     return AQI_LABELS[category] || 'Нет данных';
 }
 
-// --------- Создание маркера ---------
+function getFreshnessInfo(isoString) {
+    if (!isoString) {
+        return {
+            className: 'status--stale',
+            text: 'данные отсутствуют',
+            footerText: 'Данные отсутствуют',
+        };
+    }
 
-function createMarker(station) {
+    const d = new Date(isoString);
+    const now = new Date();
+    const diffMin = Math.max(0, Math.round((now - d) / 60000));
+
+    if (diffMin <= 90) {
+        return {
+            className: 'status--ok',
+            text: 'актуально',
+            footerText: `Последнее измерение: ${formatTime(isoString)}`,
+        };
+    }
+
+    if (diffMin <= 180) {
+        return {
+            className: 'status--warn',
+            text: 'обновление задерживается',
+            footerText: `Последнее измерение: ${formatTime(isoString)} · обновление задерживается`,
+        };
+    }
+
+    return {
+        className: 'status--stale',
+        text: 'данные устарели',
+        footerText: `Последнее измерение: ${formatTime(isoString)} · данные устарели`,
+    };
+}
+
+function buildMarkerIcon(station) {
     const hasData = station.aqi_us !== null && station.aqi_us !== undefined;
     const color = hasData ? aqiColor(station.aqi_category) : '#9ca3af';
     const text = hasData ? String(station.aqi_us) : '—';
 
-    const icon = L.divIcon({
+    return L.divIcon({
         className: 'aqi-marker-wrapper',
         html: `<div class="aqi-marker" style="background:${color}">${text}</div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 16],
     });
+}
+
+function upsertMarker(station) {
+    const icon = buildMarkerIcon(station);
+
+    if (markers[station.id]) {
+        markers[station.id].setLatLng([station.latitude, station.longitude]);
+        markers[station.id].setIcon(icon);
+
+        if (markers[station.id].getTooltip()) {
+            markers[station.id].setTooltipContent(station.name);
+        }
+
+        markers[station.id].off('click');
+        markers[station.id].on('click', () => showStationDetails(stationsById[station.id]));
+        return;
+    }
 
     const marker = L.marker([station.latitude, station.longitude], { icon })
         .addTo(map)
         .bindTooltip(station.name, { direction: 'top', offset: [0, -10] });
 
-    marker.on('click', () => showStationDetails(station));
-
-    return marker;
+    marker.on('click', () => showStationDetails(stationsById[station.id]));
+    markers[station.id] = marker;
 }
 
-// --------- Сайдбар: детали станции ---------
+function showStationDetails(station) {
+    selectedStationId = station.id;
 
-async function showStationDetails(station) {
     const content = document.getElementById('sidebar-content');
     const header = document.querySelector('.sidebar__header');
 
@@ -118,7 +167,7 @@ async function showStationDetails(station) {
         content.innerHTML = `
             <div class="sidebar__hint">
                 <p><strong>Данных пока нет.</strong></p>
-                <p>Данные появятся после первого опроса Open-Meteo (обычно в течение часа после запуска).</p>
+                <p>Данные появятся после первого опроса Open-Meteo.</p>
             </div>
         `;
         return;
@@ -126,10 +175,13 @@ async function showStationDetails(station) {
 
     const color = aqiColor(station.aqi_category);
     const label = aqiLabel(station.aqi_category);
+    const freshness = getFreshnessInfo(station.latest_time);
 
     content.innerHTML = `
         <div class="station-details">
-            <div class="station-details__time">Обновлено: ${formatTime(station.latest_time)}</div>
+            <div class="station-details__time ${freshness.className}">
+                Обновлено: ${formatTime(station.latest_time)} · ${freshness.text}
+            </div>
 
             <div class="aqi-box" style="background:${color}">
                 <div class="aqi-box__value">${station.aqi_us}</div>
@@ -166,24 +218,31 @@ async function showStationDetails(station) {
     `;
 }
 
-// --------- Загрузка станций с API ---------
-
 async function loadStations() {
     try {
-        const response = await fetch(`${API_BASE}/stations`);
+        const response = await fetch(`${API_BASE}/stations`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const stations = await response.json();
 
-        // Обновляем или создаём маркеры
+        const stations = await response.json();
+        const seenIds = new Set();
+
         stations.forEach(station => {
-            if (markers[station.id]) {
-                // Обновить существующий маркер
-                map.removeLayer(markers[station.id]);
-            }
-            markers[station.id] = createMarker(station);
+            seenIds.add(String(station.id));
+            stationsById[station.id] = station;
+            upsertMarker(station);
         });
 
-        // Обновляем время последнего обновления в футере
+        Object.keys(markers).forEach(id => {
+            if (!seenIds.has(String(id))) {
+                map.removeLayer(markers[id]);
+                delete markers[id];
+                delete stationsById[id];
+                if (selectedStationId === Number(id)) {
+                    selectedStationId = null;
+                }
+            }
+        });
+
         const latest = stations
             .map(s => s.latest_time)
             .filter(Boolean)
@@ -192,9 +251,13 @@ async function loadStations() {
 
         const updateEl = document.getElementById('last-update');
         if (updateEl) {
-            updateEl.textContent = latest
-                ? `Последнее измерение: ${formatTime(latest)}`
-                : 'Ждём первых данных…';
+            const freshness = getFreshnessInfo(latest);
+            updateEl.className = `footer__update ${freshness.className}`;
+            updateEl.textContent = freshness.footerText;
+        }
+
+        if (selectedStationId !== null && stationsById[selectedStationId]) {
+            showStationDetails(stationsById[selectedStationId]);
         }
 
         console.log(`atyair: loaded ${stations.length} stations`);
@@ -202,12 +265,11 @@ async function loadStations() {
         console.error('atyair: failed to load stations', error);
         const updateEl = document.getElementById('last-update');
         if (updateEl) {
+            updateEl.className = 'footer__update status--stale';
             updateEl.textContent = 'Ошибка загрузки данных';
         }
     }
 }
-
-// --------- Старт приложения ---------
 
 loadStations();
 setInterval(loadStations, REFRESH_INTERVAL_MS);

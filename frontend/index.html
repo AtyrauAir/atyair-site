@@ -1,4 +1,4 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -7,14 +7,35 @@ html<!DOCTYPE html>
     <meta name="robots" content="index, follow">
 
     <title>atyair — качество воздуха в Атырау</title>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://atyair.org/">
+    <meta property="og:title" content="atyair — качество воздуха в Атырау">
+    <meta property="og:description" content="Независимый мониторинг качества воздуха. 8 точек в городе. Данные каждый час.">
+    <meta property="og:site_name" content="atyair">
+    <meta property="og:locale" content="ru_RU">
+    <meta name="twitter:card" content="summary">
+<!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://atyair.org/">
+    <meta property="og:title" content="atyair — качество воздуха в Атырау">
+    <meta property="og:description" content="Независимый мониторинг качества воздуха. 8 точек в городе. Данные каждый час.">
+    <meta property="og:site_name" content="atyair">
+    <meta property="og:locale" content="ru_RU">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="atyair — качество воздуха в Атырау">
+    <meta name="twitter:description" content="Независимый мониторинг качества воздуха. 8 точек в городе. Данные каждый час.">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
           crossorigin=""/>
 
-    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/style.css?v=20260419b">
 
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%231e88e5'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 </head>
 <body>
 
@@ -79,12 +100,29 @@ html<!DOCTYPE html>
 </main>
 
 <footer class="footer">
-    <div class="footer__inner">
-        <div>
-            Независимый проект. Данные:
-            <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
-            (Copernicus CAMS). Не является официальным источником.
+    <div class="footer__columns">
+        <div class="footer__col">
+            <div class="footer__col-title">atyair</div>
+            <div class="footer__col-text">Независимый некоммерческий проект мониторинга качества воздуха в Атырау.</div>
         </div>
+        <div class="footer__col">
+            <div class="footer__col-title">Данные</div>
+            <div class="footer__col-text">
+                <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (Copernicus CAMS)<br>
+                Обновляется каждый час
+            </div>
+        </div>
+        <div class="footer__col">
+            <div class="footer__col-title">Связь</div>
+            <div class="footer__col-text">
+                <a href="mailto:tekhnadzorkz@gmail.com">✉ tekhnadzorkz@gmail.com</a><br>
+                <span style="opacity:0.6">💬 Telegram · скоро</span><br>
+                <span style="opacity:0.6">🐙 GitHub · скоро</span>
+            </div>
+        </div>
+    </div>
+    <div class="footer__bottom">
+        <div>© 2026 atyair · Не является официальным источником</div>
         <div id="last-update" class="footer__update">Обновление…</div>
     </div>
 </footer>
@@ -93,7 +131,7 @@ html<!DOCTYPE html>
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
 
-<script src="/app.js"></script>
+<script src="/app.js?v=20260419b"></script>
 
 </body>
 </html>
