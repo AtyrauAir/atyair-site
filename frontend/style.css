@@ -510,3 +510,26 @@ body {
 .station-details__time.status--stale {
     font-weight: 600;
 }
+
+/* ---------- Улучшенные карточки загрязнителей ---------- */
+.pollutant {
+    cursor: help;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.pollutant:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.pollutant__tech {
+    font-size: 10px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+.pollutant__level {
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 4px;
+}
