@@ -309,6 +309,37 @@ async def info():
 # Обработчик ошибок
 # =============================================================================
 
+
+@app.get("/api/wind")
+async def get_wind():
+    """Ветер по центру Атырау — прямой запрос Open-Meteo Forecast API."""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            r = await client.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": 47.1067,
+                    "longitude": 51.9233,
+                    "current": "wind_speed_10m,wind_direction_10m,wind_gusts_10m",
+                    "wind_speed_unit": "ms",
+                    "timezone": "Asia/Oral",
+                }
+            )
+            r.raise_for_status()
+            data = r.json()
+        cur = data.get("current", {})
+        return {
+            "speed": cur.get("wind_speed_10m"),
+            "direction": cur.get("wind_direction_10m"),
+            "gusts": cur.get("wind_gusts_10m"),
+            "updated_at": cur.get("time"),
+        }
+    except Exception as e:
+        logger.error("wind_fetch_error", error=str(e))
+        return {"speed": None, "direction": None, "gusts": None, "updated_at": None}
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc: Exception):
     logger.error("unhandled_exception", error=str(exc), path=str(request.url.path))

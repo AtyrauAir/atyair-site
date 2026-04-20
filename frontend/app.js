@@ -276,85 +276,6 @@ function showStationDetails(station) {
     `;
 }
 
-// ---------- Сводка по городу ----------
-function renderCitySummary(summary) {
-    const content = document.getElementById('sidebar-content');
-    const header = document.querySelector('.sidebar__header');
-
-    header.innerHTML = `
-        <h2 class="sidebar__title">Атырау — сводка по городу</h2>
-        <p class="sidebar__subtitle">Средние значения по ${summary.points_valid} из ${summary.points_total} точек мониторинга</p>
-    `;
-
-    if (summary.avg_aqi === null || summary.avg_aqi === undefined) {
-        content.innerHTML = `
-            <div class="sidebar__hint">
-                <p><strong>Данных пока нет.</strong></p>
-                <p>Данные появятся после первого опроса Open-Meteo.</p>
-            </div>
-        `;
-        return;
-    }
-
-    const color = aqiColor(summary.avg_category);
-    const label = aqiLabel(summary.avg_category);
-    const freshness = getFreshnessInfo(summary.updated_at);
-    const p = summary.pollutants || {};
-
-    content.innerHTML = `
-        <div class="station-details">
-            <div class="station-details__time ${freshness.className}">
-                Обновлено: ${formatTime(summary.updated_at)} · ${freshness.text}
-            </div>
-
-            <div class="aqi-box" style="background:${color}">
-                <div class="aqi-box__value">${summary.avg_aqi}</div>
-                <div class="aqi-box__label">${label} · средний AQI</div>
-            </div>
-
-            <div class="summary-extremes">
-                <div class="summary-extremes__item">
-                    <div class="summary-extremes__label">Самая чистая точка</div>
-                    <div class="summary-extremes__value">${summary.min_station ? summary.min_station.name : '—'}</div>
-                    <div class="summary-extremes__aqi">AQI ${summary.min_station ? summary.min_station.aqi : '—'}</div>
-                </div>
-                <div class="summary-extremes__item">
-                    <div class="summary-extremes__label">Самая грязная точка</div>
-                    <div class="summary-extremes__value">${summary.max_station ? summary.max_station.name : '—'}</div>
-                    <div class="summary-extremes__aqi">AQI ${summary.max_station ? summary.max_station.aqi : '—'}</div>
-                </div>
-            </div>
-
-            <div class="pollutant-grid">
-                ${pollutantCard('pm25', p.pm25)}
-                ${pollutantCard('pm10', p.pm10)}
-                ${pollutantCard('co',   p.co)}
-                ${pollutantCard('no2',  p.no2)}
-                ${pollutantCard('so2',  p.so2)}
-                ${pollutantCard('o3',   p.o3)}
-            </div>
-
-            <p class="summary-hint">Нажмите на любую точку на карте, чтобы увидеть детали.</p>
-        </div>
-    `;
-}
-
-async function loadCitySummary() {
-    try {
-        const response = await fetch(`${API_BASE}/summary`, { cache: 'no-store' });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const summary = await response.json();
-        renderCitySummary(summary);
-    } catch (err) {
-        console.error('Ошибка загрузки сводки:', err);
-    }
-}
-
-function showCityView() {
-    selectedStationId = null;
-    loadCitySummary();
-}
-
 async function loadStations() {
     try {
         const response = await fetch(`${API_BASE}/stations`, { cache: 'no-store' });
@@ -409,8 +330,122 @@ async function loadStations() {
 }
 
 loadStations();
-loadCitySummary();
-setInterval(() => {
-    loadStations();
-    if (selectedStationId === null) loadCitySummary();
-}, REFRESH_INTERVAL_MS);
+setInterval(loadStations, REFRESH_INTERVAL_MS);
+
+
+// =============================================================================
+// WIND LAYER — анимация частиц ветра поверх карты
+// =============================================================================
+
+let windSpeed = 0;
+let windDir = 0;
+let windCanvas = null;
+const windParticles = [];
+const WIND_PARTICLE_COUNT = 250;
+
+function spawnParticle(random) {
+    const w = windCanvas ? windCanvas.width : 800;
+    const h = windCanvas ? windCanvas.height : 600;
+    const angleRad = ((windDir + 180) % 360) * Math.PI / 180;
+    const vx = Math.sin(angleRad);
+    const vy = -Math.cos(angleRad);
+    let x, y;
+    if (random) {
+        x = Math.random() * w;
+        y = Math.random() * h;
+    } else {
+        if (Math.abs(vx) >= Math.abs(vy)) {
+            x = vx > 0 ? -5 : w + 5;
+            y = Math.random() * h;
+        } else {
+            x = Math.random() * w;
+            y = vy > 0 ? -5 : h + 5;
+        }
+    }
+    return { x, y, age: random ? Math.random() * 200 : 0, maxAge: 200 + Math.random() * 150 };
+}
+
+function animateWind() {
+    if (!windCanvas) { requestAnimationFrame(animateWind); return; }
+    const ctx = windCanvas.getContext('2d');
+    const w = windCanvas.width;
+    const h = windCanvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    if (windSpeed >= 0.3) {
+        const angleRad = ((windDir + 180) % 360) * Math.PI / 180;
+        const vx = Math.sin(angleRad);
+        const vy = -Math.cos(angleRad);
+        const spd = Math.max(0.5, Math.min(windSpeed * 0.6, 5));
+
+        windParticles.forEach((p, i) => {
+            p.age++;
+            p.x += vx * spd;
+            p.y += vy * spd;
+            const life = p.age / p.maxAge;
+            const alpha = life < 0.15 ? life / 0.15 : life > 0.75 ? (1 - life) / 0.25 : 1;
+            let r = 30, g = 80, b = 200;
+            if (windSpeed >= 10)     { r = 200; g = 30;  b = 30;  }
+            else if (windSpeed >= 6) { r = 200; g = 120; b = 0;   }
+            else if (windSpeed >= 3) { r = 0;   g = 150; b = 80;  }
+            const trail = spd * 5;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x - vx * trail, p.y - vy * trail);
+            ctx.strokeStyle = `rgba(${r},${g},${b},${(alpha * 0.9).toFixed(2)})`;
+            ctx.lineWidth = 2.0;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            if (p.age > p.maxAge || p.x < -20 || p.x > w + 20 || p.y < -20 || p.y > h + 20) {
+                windParticles[i] = spawnParticle(false);
+            }
+        });
+    }
+    requestAnimationFrame(animateWind);
+}
+
+function initWindCanvas() {
+    const mapEl = document.getElementById('map');
+    if (!mapEl) return;
+    windCanvas = document.createElement('canvas');
+    windCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:400;';
+    mapEl.style.position = 'relative';
+    mapEl.appendChild(windCanvas);
+    function resize() {
+        windCanvas.width = mapEl.offsetWidth;
+        windCanvas.height = mapEl.offsetHeight;
+        windParticles.length = 0;
+        for (let i = 0; i < WIND_PARTICLE_COUNT; i++) windParticles.push(spawnParticle(true));
+    }
+    resize();
+    new ResizeObserver(resize).observe(mapEl);
+    animateWind();
+}
+
+function updateWindBadge(speed, direction) {
+    const badge = document.getElementById('wind-badge');
+    if (!badge) return;
+    if (speed === null || speed === undefined) { badge.textContent = '💨 —'; return; }
+    const dirs = ['С','СВ','В','ЮВ','Ю','ЮЗ','З','СЗ'];
+    const dirName = dirs[Math.round(direction / 45) % 8];
+    badge.textContent = `💨 ${speed.toFixed(1)} м/с ${dirName}`;
+    if (speed >= 10)     badge.style.color = '#ff5050';
+    else if (speed >= 6) badge.style.color = '#ffdc32';
+    else if (speed >= 3) badge.style.color = '#60ff96';
+    else                 badge.style.color = '#60d0ff';
+}
+
+async function loadWind() {
+    try {
+        const r = await fetch('/api/wind', { cache: 'no-store' });
+        if (!r.ok) return;
+        const data = await r.json();
+        windSpeed = data.speed ?? 0;
+        windDir = data.direction ?? 0;
+        updateWindBadge(data.speed, data.direction);
+    } catch(e) { console.error('wind load error', e); }
+}
+
+initWindCanvas();
+loadWind();
+setInterval(loadWind, 5 * 60 * 1000);
