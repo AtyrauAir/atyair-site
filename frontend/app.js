@@ -350,19 +350,9 @@ function spawnParticle(random) {
     const vx = Math.sin(angleRad);
     const vy = -Math.cos(angleRad);
     let x, y;
-    if (random) {
-        x = Math.random() * w;
-        y = Math.random() * h;
-    } else {
-        if (Math.abs(vx) >= Math.abs(vy)) {
-            x = vx > 0 ? -5 : w + 5;
-            y = Math.random() * h;
-        } else {
-            x = Math.random() * w;
-            y = vy > 0 ? -5 : h + 5;
-        }
-    }
-    return { x, y, age: random ? Math.random() * 200 : 0, maxAge: 200 + Math.random() * 150 };
+    x = Math.random() * w;
+    y = Math.random() * h;
+    return { x, y, age: Math.random() * 300, maxAge: 300 + Math.random() * 200 };
 }
 
 function animateWind() {
