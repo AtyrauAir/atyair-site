@@ -28,6 +28,82 @@ const AQI_LABELS = {
     hazardous: 'Опасно',
 };
 
+const POLLUTANTS_INFO = {
+    pm25: {
+        name: 'Мелкая пыль',
+        tech: 'PM2.5',
+        desc: 'Частицы меньше 2.5 микрометра. Попадают глубоко в лёгкие и кровь. Главный враг здоровья.',
+        sources: 'Автомобили, заводы, пыльные бури, пожары, сжигание угля.',
+        thresholds: [15, 35, 55, 150],
+        digits: 1,
+    },
+    pm10: {
+        name: 'Крупная пыль',
+        tech: 'PM10',
+        desc: 'Частицы до 10 микрометров — обычная пыль в воздухе. Оседает в верхних дыхательных путях.',
+        sources: 'Дороги, строительство, ветер, промышленная пыль.',
+        thresholds: [45, 100, 200, 400],
+        digits: 1,
+    },
+    co: {
+        name: 'Угарный газ',
+        tech: 'CO',
+        desc: 'Без цвета и запаха. Связывается с кровью вместо кислорода. В больших дозах смертелен.',
+        sources: 'Выхлопы автомобилей, плохое горение, пожары, печи.',
+        thresholds: [4000, 10000, 30000, 60000],
+        digits: 0,
+    },
+    no2: {
+        name: 'Выхлопы машин',
+        tech: 'NO₂',
+        desc: 'Бурый газ с острым запахом. Раздражает дыхательные пути, усиливает астму.',
+        sources: 'Автомобили, грузовики, ТЭЦ, нефтехимия.',
+        thresholds: [25, 100, 200, 400],
+        digits: 1,
+    },
+    so2: {
+        name: 'Сернистый газ',
+        tech: 'SO₂',
+        desc: 'Острый удушливый запах. Главный показатель выбросов нефтепереработки и ТЭЦ.',
+        sources: 'НПЗ, ТЭЦ на угле/мазуте, металлургия.',
+        thresholds: [40, 125, 350, 500],
+        digits: 1,
+    },
+    o3: {
+        name: 'Озон у земли',
+        tech: 'O₃',
+        desc: 'Не путать с озоном в стратосфере! У земли — вреден. Образуется от солнца и выхлопов летом.',
+        sources: 'Реакция солнечного света с выхлопами. Летом больше.',
+        thresholds: [100, 160, 240, 400],
+        digits: 1,
+    },
+};
+
+function pollutantLevel(value, thresholds) {
+    if (value === null || value === undefined) return null;
+    if (value <= thresholds[0]) return { code: 'good', label: 'норма', color: '#16a34a' };
+    if (value <= thresholds[1]) return { code: 'moderate', label: 'чуть повышено', color: '#ca8a04' };
+    if (value <= thresholds[2]) return { code: 'high', label: 'повышено', color: '#ea580c' };
+    return { code: 'hazard', label: 'опасно', color: '#dc2626' };
+}
+
+function pollutantCard(key, value) {
+    const info = POLLUTANTS_INFO[key];
+    if (!info) return '';
+    const valDisplay = (value === null || value === undefined) ? '—' : Number(value).toFixed(info.digits);
+    const level = pollutantLevel(value, info.thresholds);
+    const levelBlock = level
+        ? `<div class="pollutant__level" style="color:${level.color}">${level.label}</div>`
+        : '<div class="pollutant__level" style="color:#9ca3af">нет данных</div>';
+    const tooltip = `${info.name} (${info.tech}). ${info.desc} Источники: ${info.sources}`;
+    return `<div class="pollutant" title="${tooltip.replace(/"/g, '&quot;')}">
+        <div class="pollutant__name">${info.name}</div>
+        <div class="pollutant__tech">${info.tech}</div>
+        <div class="pollutant__value">${valDisplay} <span class="pollutant__unit">мкг/м³</span></div>
+        ${levelBlock}
+    </div>`;
+}
+
 const map = L.map('map', {
     center: MAP_CENTER,
     zoom: MAP_ZOOM,
@@ -189,30 +265,12 @@ function showStationDetails(station) {
             </div>
 
             <div class="pollutant-grid">
-                <div class="pollutant">
-                    <div class="pollutant__name">PM2.5</div>
-                    <div class="pollutant__value">${formatNum(station.pm25)} <span class="pollutant__unit">мкг/м³</span></div>
-                </div>
-                <div class="pollutant">
-                    <div class="pollutant__name">PM10</div>
-                    <div class="pollutant__value">${formatNum(station.pm10)} <span class="pollutant__unit">мкг/м³</span></div>
-                </div>
-                <div class="pollutant">
-                    <div class="pollutant__name">CO</div>
-                    <div class="pollutant__value">${formatNum(station.co, 0)} <span class="pollutant__unit">мкг/м³</span></div>
-                </div>
-                <div class="pollutant">
-                    <div class="pollutant__name">NO₂</div>
-                    <div class="pollutant__value">${formatNum(station.no2)} <span class="pollutant__unit">мкг/м³</span></div>
-                </div>
-                <div class="pollutant">
-                    <div class="pollutant__name">SO₂</div>
-                    <div class="pollutant__value">${formatNum(station.so2)} <span class="pollutant__unit">мкг/м³</span></div>
-                </div>
-                <div class="pollutant">
-                    <div class="pollutant__name">O₃</div>
-                    <div class="pollutant__value">${formatNum(station.o3)} <span class="pollutant__unit">мкг/м³</span></div>
-                </div>
+                ${pollutantCard('pm25', station.pm25)}
+                ${pollutantCard('pm10', station.pm10)}
+                ${pollutantCard('co', station.co)}
+                ${pollutantCard('no2', station.no2)}
+                ${pollutantCard('so2', station.so2)}
+                ${pollutantCard('o3', station.o3)}
             </div>
         </div>
     `;
