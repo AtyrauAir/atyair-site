@@ -40,3 +40,4 @@ certbot/
 *.tmp
 *.bak
 tmp/
+backups/
