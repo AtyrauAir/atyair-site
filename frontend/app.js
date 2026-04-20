@@ -276,6 +276,85 @@ function showStationDetails(station) {
     `;
 }
 
+// ---------- Сводка по городу ----------
+function renderCitySummary(summary) {
+    const content = document.getElementById('sidebar-content');
+    const header = document.querySelector('.sidebar__header');
+
+    header.innerHTML = `
+        <h2 class="sidebar__title">Атырау — сводка по городу</h2>
+        <p class="sidebar__subtitle">Средние значения по ${summary.points_valid} из ${summary.points_total} точек мониторинга</p>
+    `;
+
+    if (summary.avg_aqi === null || summary.avg_aqi === undefined) {
+        content.innerHTML = `
+            <div class="sidebar__hint">
+                <p><strong>Данных пока нет.</strong></p>
+                <p>Данные появятся после первого опроса Open-Meteo.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const color = aqiColor(summary.avg_category);
+    const label = aqiLabel(summary.avg_category);
+    const freshness = getFreshnessInfo(summary.updated_at);
+    const p = summary.pollutants || {};
+
+    content.innerHTML = `
+        <div class="station-details">
+            <div class="station-details__time ${freshness.className}">
+                Обновлено: ${formatTime(summary.updated_at)} · ${freshness.text}
+            </div>
+
+            <div class="aqi-box" style="background:${color}">
+                <div class="aqi-box__value">${summary.avg_aqi}</div>
+                <div class="aqi-box__label">${label} · средний AQI</div>
+            </div>
+
+            <div class="summary-extremes">
+                <div class="summary-extremes__item">
+                    <div class="summary-extremes__label">Самая чистая точка</div>
+                    <div class="summary-extremes__value">${summary.min_station ? summary.min_station.name : '—'}</div>
+                    <div class="summary-extremes__aqi">AQI ${summary.min_station ? summary.min_station.aqi : '—'}</div>
+                </div>
+                <div class="summary-extremes__item">
+                    <div class="summary-extremes__label">Самая грязная точка</div>
+                    <div class="summary-extremes__value">${summary.max_station ? summary.max_station.name : '—'}</div>
+                    <div class="summary-extremes__aqi">AQI ${summary.max_station ? summary.max_station.aqi : '—'}</div>
+                </div>
+            </div>
+
+            <div class="pollutant-grid">
+                ${pollutantCard('pm25', p.pm25)}
+                ${pollutantCard('pm10', p.pm10)}
+                ${pollutantCard('co',   p.co)}
+                ${pollutantCard('no2',  p.no2)}
+                ${pollutantCard('so2',  p.so2)}
+                ${pollutantCard('o3',   p.o3)}
+            </div>
+
+            <p class="summary-hint">Нажмите на любую точку на карте, чтобы увидеть детали.</p>
+        </div>
+    `;
+}
+
+async function loadCitySummary() {
+    try {
+        const response = await fetch(`${API_BASE}/summary`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const summary = await response.json();
+        renderCitySummary(summary);
+    } catch (err) {
+        console.error('Ошибка загрузки сводки:', err);
+    }
+}
+
+function showCityView() {
+    selectedStationId = null;
+    loadCitySummary();
+}
+
 async function loadStations() {
     try {
         const response = await fetch(`${API_BASE}/stations`, { cache: 'no-store' });
@@ -330,4 +409,8 @@ async function loadStations() {
 }
 
 loadStations();
-setInterval(loadStations, REFRESH_INTERVAL_MS);
+loadCitySummary();
+setInterval(() => {
+    loadStations();
+    if (selectedStationId === null) loadCitySummary();
+}, REFRESH_INTERVAL_MS);

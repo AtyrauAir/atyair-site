@@ -128,3 +128,33 @@ def aqi_to_label(aqi: Optional[int]) -> Optional[str]:
         if low <= aqi <= high:
             return label
     return "Опасно" if aqi > 500 else None
+
+
+# ---------- Сводка по городу (для сайдбара) ----------
+class CitySummaryPoint(BaseModel):
+    """Точка-экстремум (самая чистая/грязная)."""
+    name: str
+    aqi: int
+
+
+class CityPollutants(BaseModel):
+    """Средние значения загрязнителей по городу."""
+    pm25: Optional[float] = None
+    pm10: Optional[float] = None
+    co: Optional[float] = None
+    no2: Optional[float] = None
+    so2: Optional[float] = None
+    o3: Optional[float] = None
+
+
+class CitySummary(BaseModel):
+    """Агрегированная сводка по всем активным станциям."""
+    avg_aqi: Optional[int] = None
+    avg_category: Optional[str] = None   # good / moderate / unhealthy ...
+    avg_label: Optional[str] = None      # человеческая метка на русском
+    max_station: Optional[CitySummaryPoint] = None
+    min_station: Optional[CitySummaryPoint] = None
+    updated_at: Optional[datetime] = None
+    points_total: int = 0
+    points_valid: int = 0
+    pollutants: CityPollutants = CityPollutants()

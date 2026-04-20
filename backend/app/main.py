@@ -33,6 +33,10 @@ from app.models import (
     Measurement,
     HealthResponse,
     aqi_to_category,
+    aqi_to_label,
+    CitySummary,
+    CitySummaryPoint,
+    CityPollutants,
 )
 
 
@@ -236,6 +240,56 @@ async def get_history(
         ),
         measurements=[Measurement(**dict(row)) for row in measurement_rows],
         total_count=len(measurement_rows),
+    )
+
+
+@app.get("/api/summary", response_model=CitySummary)
+async def get_summary():
+    """
+    Сводка по городу: средний / макс / мин AQI по всем активным станциям.
+    Используется в сайдбаре до выбора конкретной точки.
+    Переиспользует get_stations(), чтобы данные на карте и в сводке совпадали.
+    """
+    stations = await get_stations()
+
+    # Только станции с валидным AQI (есть данные за последний час)
+    valid = [s for s in stations if s.aqi_us is not None]
+
+    if not valid:
+        return CitySummary(
+            points_total=len(stations),
+            points_valid=0,
+        )
+
+    avg_aqi = round(sum(s.aqi_us for s in valid) / len(valid))
+    max_st = max(valid, key=lambda s: s.aqi_us)
+    min_st = min(valid, key=lambda s: s.aqi_us)
+
+    # Самая свежая метка времени среди всех станций
+    times = [s.latest_time for s in valid if s.latest_time]
+    latest = max(times) if times else None
+
+    def avg_of(attr):
+        vals = [getattr(s, attr) for s in valid if getattr(s, attr) is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    return CitySummary(
+        avg_aqi=avg_aqi,
+        avg_category=aqi_to_category(avg_aqi),
+        avg_label=aqi_to_label(avg_aqi),
+        max_station=CitySummaryPoint(name=max_st.name, aqi=max_st.aqi_us),
+        min_station=CitySummaryPoint(name=min_st.name, aqi=min_st.aqi_us),
+        updated_at=latest,
+        points_total=len(stations),
+        points_valid=len(valid),
+        pollutants=CityPollutants(
+            pm25=avg_of("pm25"),
+            pm10=avg_of("pm10"),
+            co=avg_of("co"),
+            no2=avg_of("no2"),
+            so2=avg_of("so2"),
+            o3=avg_of("o3"),
+        ),
     )
 
 
