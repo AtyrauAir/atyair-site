@@ -41,3 +41,4 @@ certbot/
 *.bak
 tmp/
 backups/
+*.bak2
