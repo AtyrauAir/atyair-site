@@ -694,3 +694,393 @@ body {
 .pollutant-grid .pollutant:nth-child(even):hover::after {
   transform: translateY(-14px);
 }
+
+/* Desktop dashboard layout: header + main + footer always visible */
+@media (min-width: 1024px) {
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+
+  .header {
+    position: relative;
+    z-index: 30;
+  }
+
+  .main {
+    min-height: 0;
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    overflow: hidden;
+  }
+
+  .map {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .sidebar {
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .footer {
+    position: relative;
+    z-index: 20;
+    padding: 12px 0 10px;
+  }
+
+  .footer__columns {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .footer__logo {
+    width: 64px;
+    height: auto;
+    margin-bottom: 8px;
+  }
+
+  .footer__col-title {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .footer__col-text,
+  .footer__col-text a {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .footer__bottom {
+    max-width: 1400px;
+    margin: 10px auto 0;
+    padding: 10px 20px 0;
+    font-size: 12px;
+  }
+}
+
+/* Compact footer for desktop dashboard */
+@media (min-width: 1024px) {
+  .footer {
+    padding: 8px 0 6px;
+  }
+
+  .footer__columns {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 16px;
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .footer__col:first-child {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .footer__logo {
+    width: 44px;
+    height: 44px;
+    margin-bottom: 0;
+    flex: 0 0 auto;
+  }
+
+  .footer__col-title {
+    margin-bottom: 4px;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .footer__col-text,
+  .footer__col-text a {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .footer__bottom {
+    max-width: 1400px;
+    margin: 6px auto 0;
+    padding: 6px 16px 0;
+    font-size: 11px;
+  }
+}
+
+/* Pro dashboard mode: fixed header, fixed right sidebar, one-line live status bar */
+@media (min-width: 1280px) {
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .header {
+    position: relative;
+    z-index: 2000;
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .header__inner {
+    min-height: 58px;
+    padding: 0 18px;
+  }
+
+  .main {
+    min-height: 0;
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 405px;
+    overflow: hidden;
+  }
+
+  .map {
+    min-height: 0;
+    height: 100%;
+  }
+
+  .sidebar {
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: #ffffff;
+    border-left: 1px solid #e5e7eb;
+    position: relative;
+    z-index: 50;
+  }
+
+  .sidebar__header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: linear-gradient(180deg, #ffffff 0%, #ffffff 86%, rgba(255,255,255,0.96) 100%);
+    border-bottom: 1px solid #eef2f7;
+  }
+
+  .legend {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    background: linear-gradient(0deg, #ffffff 0%, #ffffff 84%, rgba(255,255,255,0.96) 100%);
+    border-top: 1px solid #eef2f7;
+    margin-top: 14px;
+    padding-bottom: 12px;
+  }
+
+  .footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 46px;
+    padding: 0 16px;
+    background: #07142b;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+  }
+
+  .footer__columns {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .footer__col {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .footer__col:first-child {
+    flex: 0 1 420px;
+  }
+
+  .footer__col:nth-child(2) {
+    flex: 0 1 auto;
+  }
+
+  .footer__col:nth-child(3) {
+    flex: 1 1 auto;
+  }
+
+  .footer__logo {
+    width: 28px;
+    height: 28px;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+
+  .footer__col-title {
+    display: none;
+  }
+
+  .footer__col-text,
+  .footer__col-text a {
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .footer__col-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .footer__col-text br {
+    display: none;
+  }
+
+  .footer__bottom {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .footer__update {
+    white-space: nowrap;
+  }
+}
+
+/* Fit full right panel into first screen on desktop */
+@media (min-width: 1280px) {
+  .main {
+    grid-template-columns: minmax(0, 1fr) 455px;
+  }
+
+  .sidebar {
+    overflow-y: hidden;
+  }
+
+  .sidebar__header {
+    padding: 18px 24px 12px;
+  }
+
+  .sidebar__title {
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .sidebar__subtitle {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .sidebar__content {
+    padding: 14px 24px 10px;
+  }
+
+  .aqi-box {
+    padding: 18px 16px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+
+  .aqi-box__value {
+    font-size: 56px;
+    line-height: 1;
+  }
+
+  .aqi-box__label {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .pollutant-grid {
+    gap: 10px;
+  }
+
+  .pollutant {
+    padding: 8px 10px;
+    border-radius: 8px;
+  }
+
+  .pollutant__name {
+    font-size: 12px;
+    margin-bottom: 1px;
+  }
+
+  .pollutant__tech {
+    font-size: 9px;
+    margin-top: 1px;
+    margin-bottom: 3px;
+  }
+
+  .pollutant__value {
+    font-size: 15px;
+    line-height: 1.15;
+  }
+
+  .pollutant__unit,
+  .pollutant__level,
+  .pollutant__info {
+    font-size: 10px;
+  }
+
+  .legend {
+    margin-top: 10px;
+    padding: 12px 24px 12px;
+  }
+
+  .legend__title {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .legend__items {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+  }
+
+  .legend__item {
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  .legend__swatch {
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+  }
+}
