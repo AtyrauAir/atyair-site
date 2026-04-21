@@ -1084,3 +1084,279 @@ body {
     margin-right: 8px;
   }
 }
+
+/* === Hotfix: tooltip pollutant cards === */
+.pollutant-grid {
+  overflow: visible;
+}
+
+.pollutant {
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
+.pollutant:hover {
+  z-index: 50;
+}
+
+.pollutant::after {
+  top: auto !important;
+  bottom: calc(100% + 10px) !important;
+  left: 0 !important;
+  right: auto !important;
+  transform: none !important;
+  max-width: min(320px, calc(100vw - 48px)) !important;
+  width: max-content;
+  white-space: normal !important;
+  overflow-wrap: break-word;
+  z-index: 9999 !important;
+  pointer-events: none;
+}
+
+.pollutant::before {
+  top: auto !important;
+  bottom: calc(100% + 2px) !important;
+  left: 24px !important;
+  right: auto !important;
+  transform: rotate(45deg) !important;
+  z-index: 9999 !important;
+  pointer-events: none;
+}
+
+
+/* === Full mobile adaptation === */
+@media (max-width: 900px) {
+  html, body {
+    overflow-x: hidden !important;
+  }
+
+  body {
+    min-width: 0 !important;
+  }
+
+  .main {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto !important;
+    height: auto !important;
+    min-height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  #map,
+  .map {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 52dvh !important;
+    min-height: 340px !important;
+    max-height: 62dvh !important;
+    position: relative !important;
+    inset: auto !important;
+  }
+
+  .sidebar {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    overflow: visible !important;
+    border-left: none !important;
+    border-top: 1px solid rgba(15, 23, 42, 0.08) !important;
+    box-shadow: none !important;
+  }
+
+  .sidebar__header,
+  .sidebar__content {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .sidebar__header {
+    padding-top: 16px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .sidebar__title {
+    font-size: 24px !important;
+    line-height: 1.2 !important;
+  }
+
+  .sidebar__subtitle,
+  .sidebar__hint,
+  .sidebar__hint p {
+    font-size: 14px !important;
+    line-height: 1.45 !important;
+  }
+
+  .pollutant-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+    overflow: visible !important;
+  }
+
+  .pollutant {
+    min-width: 0 !important;
+    overflow: visible !important;
+  }
+
+  .pollutant__name {
+    font-size: 15px !important;
+    line-height: 1.25 !important;
+  }
+
+  .pollutant__tech,
+  .pollutant__unit,
+  .pollutant__level {
+    font-size: 12px !important;
+  }
+
+  .pollutant__value {
+    font-size: 18px !important;
+    line-height: 1.2 !important;
+    word-break: break-word !important;
+  }
+
+  .aqi-box {
+    width: 100% !important;
+  }
+
+  .aqi-box__value {
+    font-size: 34px !important;
+    line-height: 1 !important;
+  }
+
+  .summary-extremes__aqi {
+    grid-template-columns: 1fr !important;
+  }
+
+  .leaflet-control-zoom {
+    margin-top: 10px !important;
+    margin-left: 10px !important;
+  }
+
+  .pollutant::after {
+    left: 0 !important;
+    right: auto !important;
+    bottom: calc(100% + 10px) !important;
+    max-width: min(300px, calc(100vw - 32px)) !important;
+    width: max-content !important;
+    white-space: normal !important;
+    overflow-wrap: break-word !important;
+    z-index: 9999 !important;
+  }
+
+  .pollutant::before {
+    left: 24px !important;
+    right: auto !important;
+    bottom: calc(100% + 2px) !important;
+    z-index: 9999 !important;
+  }
+}
+
+@media (max-width: 600px) {
+  #map,
+  .map {
+    height: 46dvh !important;
+    min-height: 300px !important;
+    max-height: 56dvh !important;
+  }
+
+  .sidebar__title {
+    font-size: 21px !important;
+  }
+
+  .pollutant-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .pollutant {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .pollutant__name {
+    font-size: 14px !important;
+  }
+
+  .pollutant__value {
+    font-size: 16px !important;
+  }
+
+  .aqi-box__value {
+    font-size: 30px !important;
+  }
+
+  .pollutant::after {
+    max-width: min(260px, calc(100vw - 24px)) !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .pollutant-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #map,
+  .map {
+    height: 42dvh !important;
+    min-height: 260px !important;
+  }
+
+  .sidebar__header,
+  .sidebar__content {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* === Mobile hotfix: stack map and sidebar, disable pollutant hover tooltips === */
+@media (max-width: 900px) {
+  .main {
+    display: flex !important;
+    flex-direction: column !important;
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  #map,
+  .map {
+    width: 100% !important;
+    height: 52dvh !important;
+    min-height: 320px !important;
+    max-height: none !important;
+    flex: 0 0 auto !important;
+  }
+
+  .sidebar {
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important;
+  }
+
+  .pollutant::before,
+  .pollutant::after {
+    display: none !important;
+    content: none !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .pollutant-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
