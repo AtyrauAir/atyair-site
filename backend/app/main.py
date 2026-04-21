@@ -323,7 +323,7 @@ async def get_wind():
                     "longitude": 51.9233,
                     "current": "wind_speed_10m,wind_direction_10m,wind_gusts_10m",
                     "wind_speed_unit": "ms",
-                    "timezone": "Asia/Oral",
+                    "timezone": settings.TZ,
                 }
             )
             r.raise_for_status()
