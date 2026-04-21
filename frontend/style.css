@@ -659,3 +659,38 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Tooltip fix: keep it inside the right sidebar */
+.pollutant::after {
+  left: 0;
+  right: auto;
+  transform: translateY(-8px);
+  z-index: 3000;
+}
+
+.pollutant::before {
+  left: 18px;
+  right: auto;
+  transform: translateY(0);
+  z-index: 3000;
+}
+
+.pollutant:hover::after {
+  transform: translateY(-14px);
+}
+
+.pollutant-grid .pollutant:nth-child(even)::after {
+  left: auto;
+  right: 0;
+  transform: translateY(-8px);
+}
+
+.pollutant-grid .pollutant:nth-child(even)::before {
+  left: auto;
+  right: 18px;
+  transform: translateY(0);
+}
+
+.pollutant-grid .pollutant:nth-child(even):hover::after {
+  transform: translateY(-14px);
+}

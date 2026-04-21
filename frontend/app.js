@@ -96,7 +96,7 @@ function pollutantCard(key, value) {
         ? `<div class="pollutant__level" style="color:${level.color}">${level.label}</div>`
         : '<div class="pollutant__level" style="color:#9ca3af">нет данных</div>';
     const tooltip = `${info.name} (${info.tech}). ${info.desc} Источники: ${info.sources}`;
-    return `<div class="pollutant" title="${tooltip.replace(/"/g, '&quot;')}">
+    return `<div class="pollutant" data-tooltip="${tooltip.replace(/"/g, '&quot;')}">
         <div class="pollutant__name">${info.name}</div>
         <div class="pollutant__tech">${info.tech}</div>
         <div class="pollutant__value">${valDisplay} <span class="pollutant__unit">мкг/м³</span></div>
