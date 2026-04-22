@@ -281,7 +281,21 @@ async function loadStations() {
         const response = await fetch(`${API_BASE}/stations`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const stations = await response.json();
+        const stations = await response.json();// --- средний AQI по городу ---
+const aqiValues = stations
+    .map(s => s.aqi_us)
+    .filter(v => v !== null && v !== undefined);
+
+if (aqiValues.length) {
+    const avgAQI = Math.round(
+        aqiValues.reduce((a, b) => a + b, 0) / aqiValues.length
+    );
+
+    const el = document.getElementById("aqi-summary");
+    if (el) {
+        el.textContent = "AQI: " + avgAQI;
+    }
+}
         const seenIds = new Set();
 
         stations.forEach(station => {
@@ -439,3 +453,16 @@ async function loadWind() {
 initWindCanvas();
 loadWind();
 setInterval(loadWind, 5 * 60 * 1000);
+// =============================================================================
+// ADD SENSOR BUTTON
+// =============================================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("add-sensor-btn");
+    if (!btn) return;
+
+    btn.addEventListener("click", () => {
+        window.open("https://t.me/AtyAir", "_blank");
+    });
+});
+
