@@ -149,7 +149,19 @@ function aqiColor(category) {
     return AQI_COLORS[category] || '#9ca3af';
 }
 
-function aqiLabel(category) {function aqiCategoryFromValue(aqi) {
+function aqiLabel(category) {
+    return AQI_LABELS[category] || 'Нет данных';
+}
+
+function aqiCategoryFromValue(aqi) {
+    if (aqi === null || aqi === undefined) return null;
+    if (aqi <= 50) return 'good';
+    if (aqi <= 100) return 'moderate';
+    if (aqi <= 150) return 'unhealthy_sensitive';
+    if (aqi <= 200) return 'unhealthy';
+    if (aqi <= 300) return 'very_unhealthy';
+    return 'hazardous';
+}function aqiLabel(category) {function aqiCategoryFromValue(aqi) {
     if (aqi === null || aqi === undefined) return null;
     if (aqi <= 50) return 'good';
     if (aqi <= 100) return 'moderate';
