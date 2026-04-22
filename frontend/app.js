@@ -282,7 +282,6 @@ async function loadStations() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
         const stations = await response.json();
-updateWindBadge(stations);
         const seenIds = new Set();
 
         stations.forEach(station => {
@@ -440,32 +439,3 @@ async function loadWind() {
 initWindCanvas();
 loadWind();
 setInterval(loadWind, 5 * 60 * 1000);
-function windDirectionText(deg) {
-    if (deg === null || deg === undefined) return "—";
-    const dirs = ["С","СВ","В","ЮВ","Ю","ЮЗ","З","СЗ"];
-    const index = Math.round(deg / 45) % 8;
-    return dirs[index];
-}
-
-function updateWindBadge(stations) {
-    if (!stations || stations.length === 0) return;
-
-    const speeds = [];
-    const dirs = [];
-
-    stations.forEach(s => {
-        if (s.wind_speed !== undefined && s.wind_speed !== null) speeds.push(s.wind_speed);
-        if (s.wind_deg !== undefined && s.wind_deg !== null) dirs.push(s.wind_deg);
-    });
-
-    if (speeds.length === 0) return;
-
-    const avgSpeed = speeds.reduce((a,b)=>a+b,0) / speeds.length;
-    const avgDeg = dirs.length ? dirs.reduce((a,b)=>a+b,0) / dirs.length : null;
-    const dirText = windDirectionText(avgDeg);
-
-    const el = document.getElementById("wind-badge");
-    if (el) {
-        el.innerText = "💨 " + avgSpeed.toFixed(1) + " м/с " + dirText;
-    }
-}
