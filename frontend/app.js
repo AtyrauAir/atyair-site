@@ -357,6 +357,82 @@ function showStationDetails(station) {
     `;
 }
 
+
+// =============================================================================
+// CITY SUMMARY — среднее по городу
+// =============================================================================
+function aqiCategoryFromValue(aqi) {
+    if (aqi === null || aqi === undefined) return null;
+    if (aqi <= 50) return 'good';
+    if (aqi <= 100) return 'moderate';
+    if (aqi <= 150) return 'unhealthy_sensitive';
+    if (aqi <= 200) return 'unhealthy';
+    if (aqi <= 300) return 'very_unhealthy';
+    return 'hazardous';
+}
+
+function avgDefined(values) {
+    const arr = values.filter(v => v !== null && v !== undefined && !Number.isNaN(Number(v)));
+    if (!arr.length) return null;
+    return arr.reduce((a, b) => a + Number(b), 0) / arr.length;
+}
+
+function showCitySummary(stations) {
+    const content = document.getElementById('sidebar-content');
+    const header = document.querySelector('.sidebar__header');
+
+    if (!content || !header || !stations || !stations.length) return;
+
+    const avgAQI = avgDefined(stations.map(s => s.aqi_us));
+    const avgPM25 = avgDefined(stations.map(s => s.pm25));
+    const avgPM10 = avgDefined(stations.map(s => s.pm10));
+    const avgCO   = avgDefined(stations.map(s => s.co));
+    const avgNO2  = avgDefined(stations.map(s => s.no2));
+    const avgSO2  = avgDefined(stations.map(s => s.so2));
+    const avgO3   = avgDefined(stations.map(s => s.o3));
+
+    const latest = stations
+        .map(s => s.latest_time)
+        .filter(Boolean)
+        .sort()
+        .pop();
+
+    const freshness = getFreshnessInfo(latest);
+    const category = aqiCategoryFromValue(avgAQI);
+    const color = aqiColor(category);
+    const label = aqiLabel(category);
+
+    header.innerHTML = `
+        <h2 class="sidebar__title">Среднее по Атырау</h2>
+        <p class="sidebar__subtitle">
+            ${stations.length} точек · общий фон загрязнения по городу
+        </p>
+    `;
+
+    content.innerHTML = `
+        <div class="station-details">
+            <div class="station-details__time ${freshness.className}">
+                Обновлено: ${formatTime(latest)} · ${freshness.text}
+            </div>
+
+            <div class="aqi-box" style="background:${color}">
+                <div class="aqi-box__value">${avgAQI !== null ? Math.round(avgAQI) : '—'}</div>
+                <div class="aqi-box__label">${label}</div>
+            </div>
+
+            <div class="pollutant-grid">
+                ${pollutantCard('pm25', avgPM25)}
+                ${pollutantCard('pm10', avgPM10)}
+                ${pollutantCard('co', avgCO)}
+                ${pollutantCard('no2', avgNO2)}
+                ${pollutantCard('so2', avgSO2)}
+                ${pollutantCard('o3', avgO3)}
+            </div>
+        </div>
+    `;
+}
+
+
 async function loadStations() {
     try {
         const response = await fetch(`${API_BASE}/stations`, { cache: 'no-store' });
