@@ -560,6 +560,83 @@ setInterval(loadWind, 5 * 60 * 1000);
 setInterval(loadWindField, 30 * 60 * 1000);
 
 // =============================================================================
+// HISTORY STRIP — три мини-карточки в хедере: 3д / 7д / 30д
+// =============================================================================
+
+const HISTORY_REFRESH_MS = 15 * 60 * 1000;
+
+function buildSparklinePath(series, width, height) {
+    if (!series || series.length < 2) return '';
+
+    const min = Math.min.apply(null, series);
+    const max = Math.max.apply(null, series);
+    const range = (max - min) || 1;  // не делим на 0, когда все значения одинаковые
+
+    const stepX = width / (series.length - 1);
+    const points = series.map((v, i) => {
+        const x = (i * stepX).toFixed(1);
+        // инвертируем Y: высокие AQI должны быть сверху
+        const y = (height - ((v - min) / range) * height).toFixed(1);
+        return `${x},${y}`;
+    });
+    return points.join(' ');
+}
+
+function renderHistoryCard(period, data) {
+    const card = document.querySelector(`.history-card[data-period="${period}"]`);
+    if (!card) return;
+
+    // Нет данных — показываем карточку в disabled-состоянии
+    if (!data || data.avg === null || data.avg === undefined) {
+        card.classList.add('history-card--empty');
+        card.classList.remove('history-card--loading');
+        const val = card.querySelector('.history-card__value');
+        if (val) val.textContent = '—';
+        return;
+    }
+
+    card.classList.remove('history-card--loading', 'history-card--empty');
+
+    // Цветовая метка AQI-категории (для подсветки фона и цвета цифры)
+    const category = data.category || 'good';
+    card.setAttribute('data-category', category);
+
+    // Значение + метка
+    const labels = { '3d': '3 дня', '7d': '7 дней', '30d': '30 дней' };
+    card.innerHTML = `
+        <div class="history-card__label">${labels[period] || period}</div>
+        <div class="history-card__value-row">
+            <span class="history-card__value">${data.avg}</span>
+        </div>
+        <svg class="history-card__spark" width="64" height="14" viewBox="0 0 64 14" preserveAspectRatio="none">
+            <polyline fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"
+                points="${buildSparklinePath(data.series, 64, 12)}"/>
+        </svg>
+    `;
+
+    // Tooltip: точное число точек в ряду
+    card.setAttribute('title', `Средний AQI за ${labels[period]}: ${data.avg} (${data.label || ''})\nТочек: ${data.points}`);
+}
+
+async function loadHistorySummary() {
+    try {
+        const r = await fetch('/api/history-summary', { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+
+        ['3d', '7d', '30d'].forEach(period => {
+            renderHistoryCard(period, data[period]);
+        });
+    } catch (e) {
+        console.error('atyair: не удалось загрузить историю', e);
+        ['3d', '7d', '30d'].forEach(period => renderHistoryCard(period, null));
+    }
+}
+
+loadHistorySummary();
+setInterval(loadHistorySummary, HISTORY_REFRESH_MS);
+
+// =============================================================================
 // ADD SENSOR BUTTON
 // =============================================================================
 
