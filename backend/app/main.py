@@ -310,10 +310,36 @@ async def info():
 # =============================================================================
 
 
+# =============================================================================
+# Ветер — одна точка (для плашки) и сетка (для анимации потока)
+# Кэш в памяти: обе ручки обновляются не чаще, чем раз в WIND_CACHE_TTL сек.
+# =============================================================================
+
+WIND_CACHE_TTL = 30 * 60  # 30 минут
+_wind_cache = {"ts": 0.0, "data": None}
+_wind_field_cache = {"ts": 0.0, "data": None}
+
+# Сетка 9x9 вокруг центра Атырау (47.1067, 51.9233)
+# lat: 47.25 (север) → 46.85 (юг) с шагом -0.05
+# lon: 51.70 (запад) → 52.15 (восток) с шагом +0.05625
+WIND_GRID_NX = 9
+WIND_GRID_NY = 9
+WIND_GRID_LO1 = 51.70
+WIND_GRID_LO2 = 52.15
+WIND_GRID_LA1 = 47.25
+WIND_GRID_LA2 = 46.85
+
+
 @app.get("/api/wind")
 async def get_wind():
     """Ветер по центру Атырау — прямой запрос Open-Meteo Forecast API."""
+    import time
     import httpx
+
+    now = time.time()
+    if _wind_cache["data"] and now - _wind_cache["ts"] < WIND_CACHE_TTL:
+        return _wind_cache["data"]
+
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             r = await client.get(
@@ -324,20 +350,138 @@ async def get_wind():
                     "current": "wind_speed_10m,wind_direction_10m,wind_gusts_10m",
                     "wind_speed_unit": "ms",
                     "timezone": settings.TZ,
-                }
+                },
             )
             r.raise_for_status()
             data = r.json()
         cur = data.get("current", {})
-        return {
+        result = {
             "speed": cur.get("wind_speed_10m"),
             "direction": cur.get("wind_direction_10m"),
             "gusts": cur.get("wind_gusts_10m"),
             "updated_at": cur.get("time"),
         }
+        _wind_cache["ts"] = now
+        _wind_cache["data"] = result
+        return result
     except Exception as e:
         logger.error("wind_fetch_error", error=str(e))
         return {"speed": None, "direction": None, "gusts": None, "updated_at": None}
+
+
+@app.get("/api/wind-field")
+async def get_wind_field():
+    """
+    Сетка ветра 9x9 вокруг Атырау в формате leaflet-velocity.
+    Возвращает два GRIB-подобных блока: U-компонента (parameterNumber=2)
+    и V-компонента (parameterNumber=3). Кэш 30 минут.
+
+    Формат, который ждёт leaflet-velocity:
+        [
+          {"header": {...}, "data": [u1, u2, ...]},
+          {"header": {...}, "data": [v1, v2, ...]}
+        ]
+
+    Порядок точек в data: строка за строкой, запад → восток, север → юг.
+    То есть первая точка = (LO1, LA1) = северо-западный угол.
+    """
+    import math
+    import time
+    import httpx
+
+    now = time.time()
+    if _wind_field_cache["data"] and now - _wind_field_cache["ts"] < WIND_CACHE_TTL:
+        return _wind_field_cache["data"]
+
+    # Генерация 81 пары координат в нужном порядке
+    dx = (WIND_GRID_LO2 - WIND_GRID_LO1) / (WIND_GRID_NX - 1)
+    dy = (WIND_GRID_LA1 - WIND_GRID_LA2) / (WIND_GRID_NY - 1)
+
+    lats, lons = [], []
+    for j in range(WIND_GRID_NY):
+        lat = WIND_GRID_LA1 - j * dy
+        for i in range(WIND_GRID_NX):
+            lon = WIND_GRID_LO1 + i * dx
+            lats.append(round(lat, 4))
+            lons.append(round(lon, 4))
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            # Open-Meteo принимает батч: latitude=47.1,47.2,... и longitude=51.7,51.8,...
+            r = await client.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": ",".join(str(x) for x in lats),
+                    "longitude": ",".join(str(x) for x in lons),
+                    "current": "wind_speed_10m,wind_direction_10m",
+                    "wind_speed_unit": "ms",
+                    "timezone": "UTC",
+                },
+            )
+            r.raise_for_status()
+            payload = r.json()
+
+        # При батче Open-Meteo возвращает список объектов (по одному на координату),
+        # либо один объект, если координат всего одна.
+        if isinstance(payload, list):
+            points = payload
+        else:
+            points = [payload]
+
+        if len(points) != WIND_GRID_NX * WIND_GRID_NY:
+            logger.error(
+                "wind_field_size_mismatch",
+                expected=WIND_GRID_NX * WIND_GRID_NY,
+                got=len(points),
+            )
+            # Возвращаем что есть, но не падаем — фронт сам решит, что делать
+            raise ValueError("grid size mismatch")
+
+        u_data, v_data = [], []
+        for p in points:
+            cur = p.get("current", {})
+            speed = cur.get("wind_speed_10m")
+            direction = cur.get("wind_direction_10m")
+
+            if speed is None or direction is None:
+                u_data.append(0.0)
+                v_data.append(0.0)
+                continue
+
+            # Метеорологическое направление: ОТКУДА дует.
+            # Компоненты (КУДА дует):
+            #   u = -speed * sin(dir)
+            #   v = -speed * cos(dir)
+            rad = math.radians(direction)
+            u_data.append(round(-speed * math.sin(rad), 3))
+            v_data.append(round(-speed * math.cos(rad), 3))
+
+        ref_time = datetime.now(timezone.utc).isoformat()
+        header_common = {
+            "parameterCategory": 2,
+            "lo1": WIND_GRID_LO1,
+            "la1": WIND_GRID_LA1,
+            "lo2": WIND_GRID_LO2,
+            "la2": WIND_GRID_LA2,
+            "dx": round(dx, 4),
+            "dy": round(dy, 4),
+            "nx": WIND_GRID_NX,
+            "ny": WIND_GRID_NY,
+            "refTime": ref_time,
+        }
+        result = [
+            {"header": {**header_common, "parameterNumber": 2, "parameterNumberName": "U-component_of_wind"}, "data": u_data},
+            {"header": {**header_common, "parameterNumber": 3, "parameterNumberName": "V-component_of_wind"}, "data": v_data},
+        ]
+
+        _wind_field_cache["ts"] = now
+        _wind_field_cache["data"] = result
+        return result
+
+    except Exception as e:
+        logger.error("wind_field_fetch_error", error=str(e))
+        # Возвращаем пустую сетку — фронт просто не покажет слой
+        return []
 
 
 @app.exception_handler(Exception)
