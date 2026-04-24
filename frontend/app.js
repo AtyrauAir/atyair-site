@@ -1,6 +1,7 @@
 /* =============================================================================
    atyair — логика фронтенда
    Карта Leaflet + загрузка данных с /api/*
+   v20260422a — техдолг закрыт: убраны дублирующиеся функции
    ============================================================================= */
 
 'use strict';
@@ -79,12 +80,16 @@ const POLLUTANTS_INFO = {
     },
 };
 
+// =============================================================================
+// Вспомогательные функции
+// =============================================================================
+
 function pollutantLevel(value, thresholds) {
     if (value === null || value === undefined) return null;
-    if (value <= thresholds[0]) return { code: 'good', label: 'норма', color: '#16a34a' };
+    if (value <= thresholds[0]) return { code: 'good',     label: 'норма',         color: '#16a34a' };
     if (value <= thresholds[1]) return { code: 'moderate', label: 'чуть повышено', color: '#ca8a04' };
-    if (value <= thresholds[2]) return { code: 'high', label: 'повышено', color: '#ea580c' };
-    return { code: 'hazard', label: 'опасно', color: '#dc2626' };
+    if (value <= thresholds[2]) return { code: 'high',     label: 'повышено',      color: '#ea580c' };
+    return                             { code: 'hazard',   label: 'опасно',         color: '#dc2626' };
 }
 
 function pollutantCard(key, value) {
@@ -104,47 +109,6 @@ function pollutantCard(key, value) {
     </div>`;
 }
 
-const map = L.map('map', {
-    center: MAP_CENTER,
-    zoom: MAP_ZOOM,
-    zoomControl: true,
-    attributionControl: true,
-});
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap',
-}).addTo(map);
-
-const markers = {};
-let stationsById = {};
-let selectedStationId = null;
-
-function formatTime(isoString) {
-    if (!isoString) return '—';
-    const d = new Date(isoString);
-    const now = new Date();
-    const diffMin = Math.max(0, Math.round((now - d) / 60000));
-
-    if (diffMin < 1) return 'только что';
-    if (diffMin < 60) return `${diffMin} мин назад`;
-
-    const diffHr = Math.round(diffMin / 60);
-    if (diffHr < 24) return `${diffHr} ч назад`;
-
-    return d.toLocaleString('ru-RU', {
-        day: '2-digit',
-        month: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
-
-function formatNum(v, digits = 1) {
-    if (v === null || v === undefined) return '—';
-    return Number(v).toFixed(digits);
-}
-
 function aqiColor(category) {
     return AQI_COLORS[category] || '#9ca3af';
 }
@@ -155,15 +119,7 @@ function aqiLabel(category) {
 
 function aqiCategoryFromValue(aqi) {
     if (aqi === null || aqi === undefined) return null;
-    if (aqi <= 50) return 'good';
-    if (aqi <= 100) return 'moderate';
-    if (aqi <= 150) return 'unhealthy_sensitive';
-    if (aqi <= 200) return 'unhealthy';
-    if (aqi <= 300) return 'very_unhealthy';
-    return 'hazardous';
-}function aqiLabel(category) {function aqiCategoryFromValue(aqi) {
-    if (aqi === null || aqi === undefined) return null;
-    if (aqi <= 50) return 'good';
+    if (aqi <= 50)  return 'good';
     if (aqi <= 100) return 'moderate';
     if (aqi <= 150) return 'unhealthy_sensitive';
     if (aqi <= 200) return 'unhealthy';
@@ -177,61 +133,27 @@ function avgDefined(values) {
     return arr.reduce((a, b) => a + Number(b), 0) / arr.length;
 }
 
-function showCitySummary(stations) {
-    const content = document.getElementById('sidebar-content');
-    const header = document.querySelector('.sidebar__header');
+function formatTime(isoString) {
+    if (!isoString) return '—';
+    const d = new Date(isoString);
+    const now = new Date();
+    const diffMin = Math.max(0, Math.round((now - d) / 60000));
 
-    if (!content || !header || !stations || !stations.length) return;
+    if (diffMin < 1)  return 'только что';
+    if (diffMin < 60) return `${diffMin} мин назад`;
 
-    const avgAQI = avgDefined(stations.map(s => s.aqi_us));
-    const avgPM25 = avgDefined(stations.map(s => s.pm25));
-    const avgPM10 = avgDefined(stations.map(s => s.pm10));
-    const avgCO   = avgDefined(stations.map(s => s.co));
-    const avgNO2  = avgDefined(stations.map(s => s.no2));
-    const avgSO2  = avgDefined(stations.map(s => s.so2));
-    const avgO3   = avgDefined(stations.map(s => s.o3));
+    const diffHr = Math.round(diffMin / 60);
+    if (diffHr < 24) return `${diffHr} ч назад`;
 
-    const latest = stations
-        .map(s => s.latest_time)
-        .filter(Boolean)
-        .sort()
-        .pop();
-
-    const freshness = getFreshnessInfo(latest);
-    const category = aqiCategoryFromValue(avgAQI);
-    const color = aqiColor(category);
-    const label = aqiLabel(category);
-
-    header.innerHTML = `
-        <h2 class="sidebar__title">Среднее по Атырау</h2>
-        <p class="sidebar__subtitle">
-            ${stations.length} точек · общий фон загрязнения по городу
-        </p>
-    `;
-
-    content.innerHTML = `
-        <div class="station-details">
-            <div class="station-details__time ${freshness.className}">
-                Обновлено: ${formatTime(latest)} · ${freshness.text}
-            </div>
-
-            <div class="aqi-box" style="background:${color}">
-                <div class="aqi-box__value">${avgAQI !== null ? Math.round(avgAQI) : '—'}</div>
-                <div class="aqi-box__label">${label}</div>
-            </div>
-
-            <div class="pollutant-grid">
-                ${pollutantCard('pm25', avgPM25)}
-                ${pollutantCard('pm10', avgPM10)}
-                ${pollutantCard('co', avgCO)}
-                ${pollutantCard('no2', avgNO2)}
-                ${pollutantCard('so2', avgSO2)}
-                ${pollutantCard('o3', avgO3)}
-            </div>
-        </div>
-    `;
+    return d.toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit',
+        hour: '2-digit', minute: '2-digit',
+    });
 }
-    return AQI_LABELS[category] || 'Нет данных';
+
+function formatNum(v, digits = 1) {
+    if (v === null || v === undefined) return '—';
+    return Number(v).toFixed(digits);
 }
 
 function getFreshnessInfo(isoString) {
@@ -270,6 +192,26 @@ function getFreshnessInfo(isoString) {
     };
 }
 
+// =============================================================================
+// Карта Leaflet
+// =============================================================================
+
+const map = L.map('map', {
+    center: MAP_CENTER,
+    zoom: MAP_ZOOM,
+    zoomControl: true,
+    attributionControl: true,
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap',
+}).addTo(map);
+
+const markers = {};
+let stationsById = {};
+let selectedStationId = null;
+
 function buildMarkerIcon(station) {
     const hasData = station.aqi_us !== null && station.aqi_us !== undefined;
     const color = hasData ? aqiColor(station.aqi_category) : '#9ca3af';
@@ -306,6 +248,10 @@ function upsertMarker(station) {
     marker.on('click', () => showStationDetails(stationsById[station.id]));
     markers[station.id] = marker;
 }
+
+// =============================================================================
+// Сайдбар — детали станции
+// =============================================================================
 
 function showStationDetails(station) {
     selectedStationId = station.id;
@@ -357,25 +303,9 @@ function showStationDetails(station) {
     `;
 }
 
-
 // =============================================================================
-// CITY SUMMARY — среднее по городу
+// Сайдбар — сводка по городу (показывается до выбора точки)
 // =============================================================================
-function aqiCategoryFromValue(aqi) {
-    if (aqi === null || aqi === undefined) return null;
-    if (aqi <= 50) return 'good';
-    if (aqi <= 100) return 'moderate';
-    if (aqi <= 150) return 'unhealthy_sensitive';
-    if (aqi <= 200) return 'unhealthy';
-    if (aqi <= 300) return 'very_unhealthy';
-    return 'hazardous';
-}
-
-function avgDefined(values) {
-    const arr = values.filter(v => v !== null && v !== undefined && !Number.isNaN(Number(v)));
-    if (!arr.length) return null;
-    return arr.reduce((a, b) => a + Number(b), 0) / arr.length;
-}
 
 function showCitySummary(stations) {
     const content = document.getElementById('sidebar-content');
@@ -432,27 +362,29 @@ function showCitySummary(stations) {
     `;
 }
 
+// =============================================================================
+// Загрузка данных со станций
+// =============================================================================
 
 async function loadStations() {
     try {
         const response = await fetch(`${API_BASE}/stations`, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const stations = await response.json();// --- средний AQI по городу ---
-const aqiValues = stations
-    .map(s => s.aqi_us)
-    .filter(v => v !== null && v !== undefined);
+        const stations = await response.json();
 
-if (aqiValues.length) {
-    const avgAQI = Math.round(
-        aqiValues.reduce((a, b) => a + b, 0) / aqiValues.length
-    );
+        // Средний AQI по городу — шапка
+        const aqiValues = stations
+            .map(s => s.aqi_us)
+            .filter(v => v !== null && v !== undefined);
 
-    const el = document.getElementById("aqi-summary");
-    if (el) {
-        el.textContent = "AQI: " + avgAQI;
-    }
-}
+        if (aqiValues.length) {
+            const avgAQI = Math.round(aqiValues.reduce((a, b) => a + b, 0) / aqiValues.length);
+            const el = document.getElementById('aqi-summary');
+            if (el) el.textContent = `AQI: ${avgAQI}`;
+        }
+
+        // Обновляем маркеры на карте
         const seenIds = new Set();
 
         stations.forEach(station => {
@@ -461,6 +393,7 @@ if (aqiValues.length) {
             upsertMarker(station);
         });
 
+        // Удаляем маркеры исчезнувших станций
         Object.keys(markers).forEach(id => {
             if (!seenIds.has(String(id))) {
                 map.removeLayer(markers[id]);
@@ -472,6 +405,7 @@ if (aqiValues.length) {
             }
         });
 
+        // Обновляем футер
         const latest = stations
             .map(s => s.latest_time)
             .filter(Boolean)
@@ -485,17 +419,16 @@ if (aqiValues.length) {
             updateEl.textContent = freshness.footerText;
         }
 
-       if (selectedStationId !== null && stationsById[selectedStationId]) {
-    showStationDetails(stationsById[selectedStationId]);
-} else {
-    showCitySummary(stations);
-} if (selectedStationId !== null && stationsById[selectedStationId]) {
+        // Сайдбар: детали выбранной станции или сводка по городу
+        if (selectedStationId !== null && stationsById[selectedStationId]) {
             showStationDetails(stationsById[selectedStationId]);
+        } else {
+            showCitySummary(stations);
         }
 
-        console.log(`atyair: loaded ${stations.length} stations`);
+        console.log(`atyair: загружено ${stations.length} станций`);
     } catch (error) {
-        console.error('atyair: failed to load stations', error);
+        console.error('atyair: ошибка загрузки станций', error);
         const updateEl = document.getElementById('last-update');
         if (updateEl) {
             updateEl.className = 'footer__update status--stale';
@@ -518,16 +451,15 @@ let windCanvas = null;
 const windParticles = [];
 const WIND_PARTICLE_COUNT = 250;
 
-function spawnParticle(random) {
+function spawnParticle() {
     const w = windCanvas ? windCanvas.width : 800;
     const h = windCanvas ? windCanvas.height : 600;
-    const angleRad = ((windDir + 180) % 360) * Math.PI / 180;
-    const vx = Math.sin(angleRad);
-    const vy = -Math.cos(angleRad);
-    let x, y;
-    x = Math.random() * w;
-    y = Math.random() * h;
-    return { x, y, age: Math.random() * 300, maxAge: 300 + Math.random() * 200 };
+    return {
+        x: Math.random() * w,
+        y: Math.random() * h,
+        age: Math.random() * 300,
+        maxAge: 300 + Math.random() * 200,
+    };
 }
 
 function animateWind() {
@@ -549,10 +481,12 @@ function animateWind() {
             p.y += vy * spd;
             const life = p.age / p.maxAge;
             const alpha = life < 0.15 ? life / 0.15 : life > 0.75 ? (1 - life) / 0.25 : 1;
+
             let r = 30, g = 80, b = 200;
             if (windSpeed >= 10)     { r = 200; g = 30;  b = 30;  }
             else if (windSpeed >= 6) { r = 200; g = 120; b = 0;   }
             else if (windSpeed >= 3) { r = 0;   g = 150; b = 80;  }
+
             const trail = spd * 5;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
@@ -561,8 +495,9 @@ function animateWind() {
             ctx.lineWidth = 2.0;
             ctx.lineCap = 'round';
             ctx.stroke();
+
             if (p.age > p.maxAge || p.x < -20 || p.x > w + 20 || p.y < -20 || p.y > h + 20) {
-                windParticles[i] = spawnParticle(false);
+                windParticles[i] = spawnParticle();
             }
         });
     }
@@ -576,11 +511,12 @@ function initWindCanvas() {
     windCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:400;';
     mapEl.style.position = 'relative';
     mapEl.appendChild(windCanvas);
+
     function resize() {
         windCanvas.width = mapEl.offsetWidth;
         windCanvas.height = mapEl.offsetHeight;
         windParticles.length = 0;
-        for (let i = 0; i < WIND_PARTICLE_COUNT; i++) windParticles.push(spawnParticle(true));
+        for (let i = 0; i < WIND_PARTICLE_COUNT; i++) windParticles.push(spawnParticle());
     }
     resize();
     new ResizeObserver(resize).observe(mapEl);
@@ -608,22 +544,23 @@ async function loadWind() {
         windSpeed = data.speed ?? 0;
         windDir = data.direction ?? 0;
         updateWindBadge(data.speed, data.direction);
-    } catch(e) { console.error('wind load error', e); }
+    } catch(e) {
+        console.error('atyair: ошибка загрузки данных ветра', e);
+    }
 }
 
 initWindCanvas();
 loadWind();
 setInterval(loadWind, 5 * 60 * 1000);
+
 // =============================================================================
 // ADD SENSOR BUTTON
 // =============================================================================
 
-document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("add-sensor-btn");
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('add-sensor-btn');
     if (!btn) return;
-
-    btn.addEventListener("click", () => {
-        window.open("https://t.me/AtyAir", "_blank");
+    btn.addEventListener('click', () => {
+        window.open('https://t.me/AtyAir', '_blank');
     });
 });
-
