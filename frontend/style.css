@@ -1360,3 +1360,43 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =============================================================================
+   WIND BADGE — плашка скорости ветра в правом нижнем углу карты
+   ============================================================================= */
+
+.atyair-wind-badge {
+    background: rgba(17, 24, 39, 0.82);
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    margin-bottom: 8px !important;
+    margin-right: 8px !important;
+    white-space: nowrap;
+    line-height: 1;
+    transition: border-color 0.3s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+.atyair-wind-badge .atyair-wind-arrow {
+    display: inline-block;
+    color: #fff;
+    transition: transform 0.5s ease;
+}
+
+.atyair-wind-badge .atyair-wind-text {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Панель legend leaflet-velocity мы не показываем — своя плашка лучше */
+.leaflet-control-velocity {
+    display: none !important;
+}
