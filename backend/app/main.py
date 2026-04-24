@@ -293,6 +293,92 @@ async def get_summary():
     )
 
 
+# =============================================================================
+# История среднего по городу за 3/7/30 дней
+# Агрегация через TimescaleDB time_bucket, кэш в памяти 15 мин.
+# =============================================================================
+
+_history_cache = {"ts": 0.0, "data": None}
+HISTORY_CACHE_TTL = 15 * 60
+
+HISTORY_PERIODS = [
+    {"key": "3d",  "days": 3,  "bucket_hours": 6,  "label": "3 дня"},
+    {"key": "7d",  "days": 7,  "bucket_hours": 12, "label": "7 дней"},
+    {"key": "30d", "days": 30, "bucket_hours": 24, "label": "30 дней"},
+]
+
+
+@app.get("/api/history-summary")
+async def get_history_summary():
+    """
+    Средний по городу AQI за 3/7/30 дней.
+    Для каждого периода отдаёт:
+      - avg:      целое, средний AQI за весь период
+      - category: AQI-категория для подсветки (good/moderate/...)
+      - series:   массив точек спарклайна, сгруппированный по time_bucket
+    Кэш 15 минут.
+    """
+    import time
+
+    now = time.time()
+    if _history_cache["data"] and now - _history_cache["ts"] < HISTORY_CACHE_TTL:
+        return _history_cache["data"]
+
+    result = {}
+    pool = get_pool()
+
+    try:
+        async with pool.acquire() as conn:
+            for period in HISTORY_PERIODS:
+                days = period["days"]
+                bucket_interval = f"{period['bucket_hours']} hours"
+                since = datetime.now(timezone.utc) - timedelta(days=days)
+
+                # Сначала усредняем AQI по всем станциям в каждом бакете,
+                # затем возвращаем упорядоченный ряд.
+                rows = await conn.fetch(
+                    f"""
+                    SELECT
+                        time_bucket('{bucket_interval}', time) AS bucket,
+                        AVG(aqi_us)::INTEGER AS avg_aqi
+                    FROM measurements
+                    WHERE time >= $1 AND aqi_us IS NOT NULL
+                    GROUP BY bucket
+                    ORDER BY bucket ASC
+                    """,
+                    since,
+                )
+
+                series = [r["avg_aqi"] for r in rows if r["avg_aqi"] is not None]
+
+                if not series:
+                    result[period["key"]] = {
+                        "avg": None,
+                        "category": None,
+                        "label": None,
+                        "series": [],
+                        "points": 0,
+                    }
+                    continue
+
+                avg = round(sum(series) / len(series))
+                result[period["key"]] = {
+                    "avg": avg,
+                    "category": aqi_to_category(avg),
+                    "label": aqi_to_label(avg),
+                    "series": series,
+                    "points": len(series),
+                }
+
+        _history_cache["ts"] = now
+        _history_cache["data"] = result
+        return result
+
+    except Exception as e:
+        logger.error("history_summary_error", error=str(e))
+        raise HTTPException(status_code=500, detail="Failed to build history summary")
+
+
 @app.get("/api/info")
 async def info():
     """Информация о сервисе для админа."""
