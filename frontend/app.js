@@ -442,98 +442,105 @@ setInterval(loadStations, REFRESH_INTERVAL_MS);
 
 
 // =============================================================================
-// WIND LAYER — анимация частиц ветра поверх карты
+// WIND — слой потока ветра (leaflet-velocity) + плашка на карте
 // =============================================================================
 
-let windSpeed = 0;
-let windDir = 0;
-let windCanvas = null;
-const windParticles = [];
-const WIND_PARTICLE_COUNT = 250;
+let windVelocityLayer = null;
 
-function spawnParticle() {
-    const w = windCanvas ? windCanvas.width : 800;
-    const h = windCanvas ? windCanvas.height : 600;
-    return {
-        x: Math.random() * w,
-        y: Math.random() * h,
-        age: Math.random() * 300,
-        maxAge: 300 + Math.random() * 200,
-    };
+// Шкала цветов: плавный градиент от штиля к шторму.
+// Порядок стопов — равномерно от minVelocity до maxVelocity внутри leaflet-velocity,
+// библиотека сама интерполирует цвета между ними.
+//   0 м/с — бледно-голубой (штиль виден на любой подложке)
+//   5 м/с — зелёный
+//   9 м/с — розовый
+//  14 м/с — красный
+const WIND_COLOR_SCALE = [
+    'rgba(208,232,255,0.92)',  // 0 м/с — бледно-голубой
+    'rgba(0,230,118,0.95)',    // ~5 м/с — зелёный
+    'rgba(255,79,163,0.95)',   // ~9 м/с — розовый
+    'rgba(255,23,68,0.98)',    // 14+ м/с — красный
+];
+
+function windRegime(speed) {
+    if (speed === null || speed === undefined) return { label: '—', color: '#9ca3af' };
+    if (speed < 2) return { label: 'штиль',   color: '#7cc4f0' };
+    if (speed < 5) return { label: 'лёгкий',  color: '#34d399' };
+    if (speed < 9) return { label: 'свежий',  color: '#f472b6' };
+    return                  { label: 'сильный', color: '#f87171' };
 }
 
-function animateWind() {
-    if (!windCanvas) { requestAnimationFrame(animateWind); return; }
-    const ctx = windCanvas.getContext('2d');
-    const w = windCanvas.width;
-    const h = windCanvas.height;
-    ctx.clearRect(0, 0, w, h);
+function windDirLabel(deg) {
+    if (deg === null || deg === undefined) return '';
+    const labels = ['С', 'СВ', 'В', 'ЮВ', 'Ю', 'ЮЗ', 'З', 'СЗ'];
+    return labels[Math.round(deg / 45) % 8];
+}
 
-    if (windSpeed >= 0.3) {
-        const angleRad = ((windDir + 180) % 360) * Math.PI / 180;
-        const vx = Math.sin(angleRad);
-        const vy = -Math.cos(angleRad);
-        const spd = Math.max(0.5, Math.min(windSpeed * 0.6, 5));
+// Плашка ветра — Leaflet control в правом нижнем углу карты
+const WindBadgeControl = L.Control.extend({
+    options: { position: 'bottomright' },
+    onAdd: function() {
+        const d = L.DomUtil.create('div', 'atyair-wind-badge');
+        d.innerHTML = `
+            <svg class="atyair-wind-arrow" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2 L16 10 L12 8 L8 10 Z" fill="currentColor"/>
+            </svg>
+            <span class="atyair-wind-text">—</span>
+        `;
+        this._el = d;
+        return d;
+    },
+    update: function(speed, direction) {
+        if (!this._el) return;
+        const text = this._el.querySelector('.atyair-wind-text');
+        const arrow = this._el.querySelector('.atyair-wind-arrow');
+        if (speed === null || speed === undefined) {
+            text.textContent = 'нет данных';
+            arrow.style.display = 'none';
+            return;
+        }
+        const dirName = windDirLabel(direction);
+        const regime = windRegime(speed);
+        text.textContent = `${speed.toFixed(1)} м/с · ${dirName}`;
+        arrow.style.display = '';
+        // Стрелка указывает КУДА дует: направление движения = direction + 180.
+        // В SVG острый конец смотрит вверх (0°), поэтому поворот = (direction + 180).
+        const rot = ((direction ?? 0) + 180) % 360;
+        arrow.style.transform = `rotate(${rot}deg)`;
+        this._el.style.borderColor = regime.color;
+    }
+});
 
-        windParticles.forEach((p, i) => {
-            p.age++;
-            p.x += vx * spd;
-            p.y += vy * spd;
-            const life = p.age / p.maxAge;
-            const alpha = life < 0.15 ? life / 0.15 : life > 0.75 ? (1 - life) / 0.25 : 1;
+const windBadge = new WindBadgeControl();
+windBadge.addTo(map);
 
-            let r = 30, g = 80, b = 200;
-            if (windSpeed >= 10)     { r = 200; g = 30;  b = 30;  }
-            else if (windSpeed >= 6) { r = 200; g = 120; b = 0;   }
-            else if (windSpeed >= 3) { r = 0;   g = 150; b = 80;  }
+async function loadWindField() {
+    try {
+        const r = await fetch('/api/wind-field', { cache: 'no-store' });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const data = await r.json();
+        if (!Array.isArray(data) || data.length < 2) {
+            console.warn('atyair: пустая сетка ветра, слой не обновляется');
+            return;
+        }
 
-            const trail = spd * 5;
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(p.x - vx * trail, p.y - vy * trail);
-            ctx.strokeStyle = `rgba(${r},${g},${b},${(alpha * 0.9).toFixed(2)})`;
-            ctx.lineWidth = 2.0;
-            ctx.lineCap = 'round';
-            ctx.stroke();
-
-            if (p.age > p.maxAge || p.x < -20 || p.x > w + 20 || p.y < -20 || p.y > h + 20) {
-                windParticles[i] = spawnParticle();
-            }
+        if (windVelocityLayer) {
+            map.removeLayer(windVelocityLayer);
+        }
+        windVelocityLayer = L.velocityLayer({
+            displayValues: false,
+            data: data,
+            maxVelocity: 14,
+            minVelocity: 0,
+            velocityScale: 0.008,
+            particleAge: 90,
+            lineWidth: 1.4,
+            particleMultiplier: 0.014,
+            colorScale: WIND_COLOR_SCALE,
         });
+        windVelocityLayer.addTo(map);
+    } catch (e) {
+        console.error('atyair: не удалось загрузить поле ветра', e);
     }
-    requestAnimationFrame(animateWind);
-}
-
-function initWindCanvas() {
-    const mapEl = document.getElementById('map');
-    if (!mapEl) return;
-    windCanvas = document.createElement('canvas');
-    windCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:400;';
-    mapEl.style.position = 'relative';
-    mapEl.appendChild(windCanvas);
-
-    function resize() {
-        windCanvas.width = mapEl.offsetWidth;
-        windCanvas.height = mapEl.offsetHeight;
-        windParticles.length = 0;
-        for (let i = 0; i < WIND_PARTICLE_COUNT; i++) windParticles.push(spawnParticle());
-    }
-    resize();
-    new ResizeObserver(resize).observe(mapEl);
-    animateWind();
-}
-
-function updateWindBadge(speed, direction) {
-    const badge = document.getElementById('wind-badge');
-    if (!badge) return;
-    if (speed === null || speed === undefined) { badge.textContent = '💨 —'; return; }
-    const dirs = ['С','СВ','В','ЮВ','Ю','ЮЗ','З','СЗ'];
-    const dirName = dirs[Math.round(direction / 45) % 8];
-    badge.textContent = `💨 ${speed.toFixed(1)} м/с ${dirName}`;
-    if (speed >= 10)     badge.style.color = '#ff5050';
-    else if (speed >= 6) badge.style.color = '#ffdc32';
-    else if (speed >= 3) badge.style.color = '#60ff96';
-    else                 badge.style.color = '#60d0ff';
 }
 
 async function loadWind() {
@@ -541,17 +548,16 @@ async function loadWind() {
         const r = await fetch('/api/wind', { cache: 'no-store' });
         if (!r.ok) return;
         const data = await r.json();
-        windSpeed = data.speed ?? 0;
-        windDir = data.direction ?? 0;
-        updateWindBadge(data.speed, data.direction);
-    } catch(e) {
-        console.error('atyair: ошибка загрузки данных ветра', e);
+        windBadge.update(data.speed, data.direction);
+    } catch (e) {
+        console.error('atyair: ошибка загрузки скорости ветра', e);
     }
 }
 
-initWindCanvas();
 loadWind();
+loadWindField();
 setInterval(loadWind, 5 * 60 * 1000);
+setInterval(loadWindField, 30 * 60 * 1000);
 
 // =============================================================================
 // ADD SENSOR BUTTON
