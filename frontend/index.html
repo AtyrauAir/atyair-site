@@ -26,7 +26,7 @@
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet-velocity@2.1.0/dist/leaflet-velocity.min.css"/>
 
-    <link rel="stylesheet" href="/style.css?v=20260424a">
+    <link rel="stylesheet" href="/style.css?v=20260424b">
 
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -51,7 +51,22 @@
             Независимый мониторинг качества воздуха в Атырау
         </div>
 
-        <div id="aqi-summary" style="margin-left:auto;font-size:13px;font-weight:600;color:#9ca3af;letter-spacing:0.3px;white-space:nowrap;">
+        <div id="history-strip" class="history-strip" aria-label="Историческая сводка AQI">
+            <div class="history-card history-card--loading" data-period="3d">
+                <div class="history-card__label">3 дня</div>
+                <div class="history-card__value">—</div>
+            </div>
+            <div class="history-card history-card--loading" data-period="7d">
+                <div class="history-card__label">7 дней</div>
+                <div class="history-card__value">—</div>
+            </div>
+            <div class="history-card history-card--loading" data-period="30d">
+                <div class="history-card__label">30 дней</div>
+                <div class="history-card__value">—</div>
+            </div>
+        </div>
+
+        <div id="aqi-summary" class="aqi-summary-badge">
             AQI: —
         </div>
 
@@ -153,7 +168,7 @@
 
 <script src="https://unpkg.com/leaflet-velocity@2.1.0/dist/leaflet-velocity.min.js"></script>
 
-<script src="/app.js?v=20260424a"></script>
+<script src="/app.js?v=20260424b"></script>
 
 </body>
 </html>
