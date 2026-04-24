@@ -1400,3 +1400,150 @@ body {
 .leaflet-control-velocity {
     display: none !important;
 }
+
+/* =============================================================================
+   HISTORY STRIP — три карточки истории AQI в хедере
+   ============================================================================= */
+
+.history-strip {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    align-items: stretch;
+}
+
+.history-card {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    min-width: 72px;
+    background: rgba(156, 163, 175, 0.08);
+    transition: background-color 0.3s ease;
+    cursor: default;
+    line-height: 1.1;
+}
+
+.history-card__label {
+    font-size: 10px;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.history-card__value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.history-card__value {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1;
+    color: #e5e7eb;
+    font-variant-numeric: tabular-nums;
+}
+
+.history-card__spark {
+    display: block;
+    width: 64px;
+    height: 14px;
+    color: #9ca3af;
+    opacity: 0.85;
+}
+
+.history-card--loading .history-card__value,
+.history-card--empty .history-card__value {
+    color: #6b7280;
+}
+
+.history-card[data-category="good"] {
+    background: rgba(0, 228, 0, 0.12);
+}
+.history-card[data-category="good"] .history-card__value,
+.history-card[data-category="good"] .history-card__spark {
+    color: #00e400;
+}
+
+.history-card[data-category="moderate"] {
+    background: rgba(255, 255, 0, 0.15);
+}
+.history-card[data-category="moderate"] .history-card__value,
+.history-card[data-category="moderate"] .history-card__spark {
+    color: #ffff00;
+}
+
+.history-card[data-category="unhealthy_sensitive"] {
+    background: rgba(255, 126, 0, 0.18);
+}
+.history-card[data-category="unhealthy_sensitive"] .history-card__value,
+.history-card[data-category="unhealthy_sensitive"] .history-card__spark {
+    color: #ff7e00;
+}
+
+.history-card[data-category="unhealthy"] {
+    background: rgba(255, 0, 0, 0.18);
+}
+.history-card[data-category="unhealthy"] .history-card__value,
+.history-card[data-category="unhealthy"] .history-card__spark {
+    color: #ff5050;
+}
+
+.history-card[data-category="very_unhealthy"] {
+    background: rgba(143, 63, 151, 0.22);
+}
+.history-card[data-category="very_unhealthy"] .history-card__value,
+.history-card[data-category="very_unhealthy"] .history-card__spark {
+    color: #c891d0;
+}
+
+.history-card[data-category="hazardous"] {
+    background: rgba(126, 0, 35, 0.25);
+}
+.history-card[data-category="hazardous"] .history-card__value,
+.history-card[data-category="hazardous"] .history-card__spark {
+    color: #ff6080;
+}
+
+.aqi-summary-badge {
+    margin-left: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9ca3af;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+    .history-strip {
+        gap: 4px;
+    }
+    .history-card {
+        min-width: 60px;
+        padding: 3px 8px;
+    }
+    .history-card__spark {
+        width: 52px;
+    }
+}
+
+@media (max-width: 640px) {
+    .history-strip {
+        order: 10;
+        flex-basis: 100%;
+        margin-left: 0;
+        margin-top: 8px;
+        justify-content: space-between;
+    }
+    .history-card {
+        flex: 1;
+        min-width: 0;
+    }
+    .history-card__spark {
+        width: 100%;
+    }
+}
