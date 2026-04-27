@@ -534,7 +534,7 @@ async function loadWindField() {
             velocityScale: 0.008,
             particleAge: 90,
             lineWidth: 1.4,
-            particleMultiplier: 0.014,
+            particleMultiplier: 0.009,
             colorScale: WIND_COLOR_SCALE,
         });
         windVelocityLayer.addTo(map);
